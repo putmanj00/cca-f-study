@@ -1,0 +1,14 @@
+{% if q.doc_links_list %}
+<div class="doc-links">
+  <h2>Learn more</h2>
+  <ul class="doc-links-list">
+    {% for link in q.doc_links_list %}
+      <li>
+        <a class="doc-link" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+          {{ link.label }}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

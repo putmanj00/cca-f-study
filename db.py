@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS question (
   anti_pattern    TEXT,
   anti_pattern_slug TEXT,
   source          TEXT,
+  doc_links       TEXT,
   created_at      TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

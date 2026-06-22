@@ -16,6 +16,7 @@ FIELDS = (
     "correct",
     "rationale_a", "rationale_b", "rationale_c", "rationale_d",
     "anti_pattern", "anti_pattern_slug", "source",
+    "doc_links",
 )
 
 

@@ -39,6 +39,8 @@
 <p class="muted"><b>Anti-pattern:</b> {{ q.anti_pattern }}</p>
 {% endif %}
 
+{% include "_doc_links.html" %}
+
 <div class="actions">
   {% if mode == 'review' %}
     <a class="button" href="/review">Next (Review)</a>

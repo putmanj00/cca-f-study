@@ -105,6 +105,9 @@ def build_row(data: dict, correct_pos: int, idx: int) -> dict:
         "anti_pattern": data.get("anti_pattern"),
         "anti_pattern_slug": slug,
         "source": data.get("source", "original_public_docs_2026_06"),
+        # Newline-separated canonical Anthropic doc URLs ("Learn more"); carried
+        # through from the verified source so a regen preserves the links.
+        "doc_links": data.get("doc_links"),
     }
     for k in range(4):
         role = slot_role[k]

@@ -45,6 +45,31 @@ def _startup() -> None:
     init_schema()
 
 
+_LABEL_ACRONYMS = {"api", "mcp", "sdk", "cli", "ci", "cd", "pr", "json", "url", "llm"}
+
+
+def _doc_link_label(url: str) -> str:
+    """Humanize a doc URL's final path segment into a readable link label."""
+    seg = url.split("#")[0].split("?")[0].rstrip("/").rsplit("/", 1)[-1]
+    words = seg.replace("_", " ").replace("-", " ").split()
+    if not words:
+        return url
+    out = [
+        w.upper() if w.lower() in _LABEL_ACRONYMS else (w.capitalize() if i == 0 else w)
+        for i, w in enumerate(words)
+    ]
+    return " ".join(out)
+
+
+def _doc_links_list(raw: Optional[str]) -> list[dict]:
+    """Parse the newline-separated ``doc_links`` field into {url, label} dicts."""
+    return [
+        {"url": u, "label": _doc_link_label(u)}
+        for u in (line.strip() for line in (raw or "").splitlines())
+        if u
+    ]
+
+
 def _row_to_question(row: sqlite3.Row) -> dict:
     q = dict(row)
     q["choices"] = [
@@ -59,6 +84,7 @@ def _row_to_question(row: sqlite3.Row) -> dict:
         "C": q["rationale_c"],
         "D": q["rationale_d"],
     }
+    q["doc_links_list"] = _doc_links_list(q.get("doc_links"))
     return q
 
 

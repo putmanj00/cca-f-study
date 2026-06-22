@@ -4,7 +4,7 @@ Reusable prompts for CCA-F study.
 
 | File | What it does |
 |------|--------------|
-| [`cca-f-tutor-prompt.md`](cca-f-tutor-prompt.md) | An interactive AI tutor that asks 60 original, scenario-based questions one at a time, scores you, and coaches you on the mistake patterns it notices. |
+| [`cca-f-tutor-prompt.md`](cca-f-tutor-prompt.md) | An interactive AI tutor that asks original, scenario-based questions one at a time in short **8-question sessions**, scores you, cites the doc behind each answer, and coaches you on the mistake patterns it notices. |
 
 ## How to use the tutor prompt
 

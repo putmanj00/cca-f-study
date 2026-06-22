@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="meta">
+  <span class="tag">{{ q.domain }}</span>
+  <span class="tag">{{ q.scenario }}</span>
+  {% if q.principle %}<span class="tag muted">{{ q.principle }}</span>{% endif %}
+</div>
+
+<h1>
+  {% if is_correct %}
+    <span class="ok">Correct</span>
+  {% else %}
+    <span class="bad">Incorrect</span>
+  {% endif %}
+</h1>
+
+<p class="muted">You selected <b>{{ selected }}</b>. Correct answer: <b>{{ q.display_correct }}</b>.</p>
+
+<p class="stem">{{ q.stem }}</p>
+
+<h2>Rationales</h2>
+<ol class="rationales" type="A">
+  {% for display_letter, original_letter, text in q.display_choices %}
+    {% set is_sel = (display_letter == selected) %}
+    {% set is_correct_choice = (display_letter == q.display_correct) %}
+    <li class="rationale {% if is_correct_choice %}rationale-correct{% endif %} {% if is_sel and not is_correct_choice %}rationale-selected-wrong{% endif %}">
+      <div class="rationale-head">
+        <b>{{ display_letter }}.</b>
+        <span>{{ text }}</span>
+        {% if is_correct_choice %}<span class="badge ok">correct</span>{% endif %}
+        {% if is_sel %}<span class="badge sel">your choice</span>{% endif %}
+      </div>
+      <div class="rationale-body">{{ q.display_rationales[display_letter] }}</div>
+    </li>
+  {% endfor %}
+</ol>
+
+{% if q.anti_pattern %}
+<p class="muted"><b>Anti-pattern:</b> {{ q.anti_pattern }}</p>
+{% endif %}
+
+<div class="actions">
+  {% if mode == 'review' %}
+    <a class="button" href="/review">Next (Review)</a>
+  {% elif mode == 'question_list' %}
+    <a class="button" href="/questions">Back to Questions</a>
+  {% else %}
+    {% if weighted == '1' %}
+      <a class="button" href="/drill?weighted=1">Next (Weighted)</a>
+    {% else %}
+      <a class="button" href="/drill?domain={{ domain or '' }}&only={{ only or '' }}">{% if only == 'unanswered' %}Next Unanswered{% else %}Next Question{% endif %}</a>
+    {% endif %}
+  {% endif %}
+  <a class="button secondary" href="/">Home</a>
+</div>
+{% endblock %}

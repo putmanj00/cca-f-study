@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>CCA-F Study</h1>
+<p class="muted">Drill scenario-based questions for the Claude Certified Architect &mdash; Foundations exam.</p>
+
+<div class="card progress-card">
+  <div>
+    <div class="metric">{{ answered_questions }}/{{ total_questions }}</div>
+    <div class="muted">questions answered</div>
+  </div>
+  <div>
+    <div class="metric">{{ unanswered_questions }}</div>
+    <div class="muted">unanswered remaining</div>
+  </div>
+  {% if unanswered_questions > 0 %}
+    <a class="button" href="/drill?only=unanswered">Quiz Unanswered ({{ unanswered_questions }})</a>
+  {% endif %}
+  <a class="button secondary" href="/questions?status=unanswered">View Unanswered</a>
+</div>
+
+<form action="/drill" method="get" class="card">
+  <h2>Drill</h2>
+  <label for="domain">Domain (optional):</label>
+  <select name="domain" id="domain">
+    <option value="">All domains</option>
+    {% for d in domains %}
+      <option value="{{ d }}">{{ d }}</option>
+    {% endfor %}
+  </select>
+  <label class="choice" style="margin-top:.5rem">
+    <input type="checkbox" name="only" value="unanswered">
+    <span class="choice-text">Only unanswered questions</span>
+  </label>
+  <button type="submit">Start Drill</button>
+</form>
+
+<div class="card">
+  <h2>Weighted Exam Mix</h2>
+  <p>Draw questions weighted to the published blueprint
+     (D1 25% · D2 20% · D3 20% · D4 20% · D5 15%).</p>
+  <a class="button" href="/drill?weighted=1">Start Weighted Drill</a>
+</div>
+
+<div class="card">
+  <h2>Question List</h2>
+  <p>See answered, unanswered, and last-wrong questions.</p>
+  <a class="button" href="/questions">View Questions</a>
+</div>
+
+<div class="card">
+  <h2>Review Wrong</h2>
+  <p>Re-drill questions whose most recent attempt was incorrect.</p>
+  <a class="button" href="/review">Review Wrong</a>
+</div>
+
+<div class="card">
+  <h2>Add Question</h2>
+  <p>Add a new question to the bank.</p>
+  <a class="button" href="/add">Add Question</a>
+</div>
+
+<div class="card">
+  <h2>Stats</h2>
+  <p>Per-domain accuracy.</p>
+  <a class="button" href="/stats">View Stats</a>
+</div>
+{% endblock %}

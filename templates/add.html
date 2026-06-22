@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Add Question</h1>
+
+{% if added == 1 %}
+  <p class="flash ok">Question added.</p>
+{% elif added == 0 %}
+  <p class="flash bad">Invalid input. Check domain / scenario / correct letter.</p>
+{% endif %}
+
+<form action="/add" method="post" class="add-form">
+  <div class="row">
+    <label>Domain
+      <select name="domain" required>
+        {% for d in domains %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Scenario
+      <select name="scenario" required>
+        {% for s in scenarios %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Correct
+      <select name="correct" required>
+        {% for c in choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <label>Principle (optional)
+    <input type="text" name="principle">
+  </label>
+
+  <label>Stem
+    <textarea name="stem" rows="3" required></textarea>
+  </label>
+
+  {% for letter in choices %}
+    <fieldset>
+      <legend>Choice {{ letter }}</legend>
+      <label>Choice
+        <textarea name="choice_{{ letter|lower }}" rows="2" required></textarea>
+      </label>
+      <label>Rationale
+        <textarea name="rationale_{{ letter|lower }}" rows="3" required></textarea>
+      </label>
+    </fieldset>
+  {% endfor %}
+
+  <label>Anti-pattern (optional)
+    <input type="text" name="anti_pattern">
+  </label>
+
+  <label>Source
+    <input type="text" name="source" value="manual">
+  </label>
+
+  <button type="submit">Add Question</button>
+</form>
+{% endblock %}

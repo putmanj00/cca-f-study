@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Questions</h1>
+
+<form action="/questions" method="get" class="card filters">
+  <label for="domain">Domain</label>
+  <select name="domain" id="domain">
+    <option value="" {% if not domain %}selected{% endif %}>All domains</option>
+    {% for d in domains %}
+      <option value="{{ d }}" {% if domain == d %}selected{% endif %}>{{ d }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="status">Status</label>
+  <select name="status" id="status">
+    <option value="" {% if not status %}selected{% endif %}>All questions</option>
+    <option value="unanswered" {% if status == 'unanswered' %}selected{% endif %}>Unanswered</option>
+    <option value="answered" {% if status == 'answered' %}selected{% endif %}>Answered</option>
+    <option value="wrong" {% if status == 'wrong' %}selected{% endif %}>Last answer wrong</option>
+  </select>
+
+  <button type="submit">Apply</button>
+</form>
+
+<div class="question-list">
+  {% for q in questions %}
+    <a class="question-row {% if not q.answered %}unanswered{% elif q.last_correct_bool %}answered-ok{% else %}answered-bad{% endif %}" href="/question/{{ q.id }}">
+      <div class="question-main">
+        <div class="question-title">#{{ q.id }} · {{ q.domain }} · {{ q.scenario }}</div>
+        <div class="question-stem">{{ q.stem }}</div>
+        {% if q.principle %}<code>{{ q.principle }}</code>{% endif %}
+      </div>
+      <div class="question-status">
+        {% if not q.answered %}
+          <span class="status-pill none">unanswered</span>
+        {% elif q.last_correct_bool %}
+          <span class="status-pill ok">answered</span>
+        {% else %}
+          <span class="status-pill bad">last wrong</span>
+        {% endif %}
+        <span class="muted">{{ q.correct_attempts }}/{{ q.attempts }}</span>
+      </div>
+    </a>
+  {% else %}
+    <div class="card">No questions match those filters.</div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Stats</h1>
+
+<div class="card">
+  <div class="row spread">
+    <div>
+      <div class="metric">{{ total_pct_str }}</div>
+      <div class="muted">overall accuracy</div>
+    </div>
+    <div>
+      <div class="metric">{{ total_correct }}/{{ total_attempts }}</div>
+      <div class="muted">correct / attempts</div>
+    </div>
+    <div>
+      <div class="metric">{{ total_questions }}</div>
+      <div class="muted">questions in bank</div>
+    </div>
+    <div>
+      <div class="metric {% if passing %}ok{% else %}bad{% endif %}">
+        {% if total_attempts == 0 %}—{% elif passing %}PASS{% else %}BELOW{% endif %}
+      </div>
+      <div class="muted">vs {{ pass_threshold }}% threshold</div>
+    </div>
+  </div>
+
+  <div class="gauge" title="Pass threshold {{ pass_threshold }}%">
+    <div class="gauge-fill {% if passing %}ok{% else %}bad{% endif %}"
+         style="width: {{ total_pct }}%"></div>
+    <div class="gauge-marker" style="left: {{ pass_threshold }}%"></div>
+    <div class="gauge-labels">
+      <span>0%</span>
+      <span class="threshold-label" style="left: {{ pass_threshold }}%">{{ pass_threshold }}% pass</span>
+      <span>100%</span>
+    </div>
+  </div>
+</div>
+
+{% if recent %}
+<div class="card">
+  <h2>Recent attempts (last {{ recent|length }}, oldest → newest)</h2>
+  <div class="trend">
+    {% for r in recent %}
+      <span class="trend-dot {% if r.correct %}ok{% else %}bad{% endif %}"
+            title="Q#{{ r.question_id }} · {{ r.domain }} · {% if r.correct %}correct{% else %}wrong{% endif %}"></span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if weakest %}
+<div class="card">
+  <h2>Focus areas</h2>
+  <p class="muted">Weakest domains by accuracy (must have ≥ 1 attempt).</p>
+  <div class="focus-list">
+    {% for w in weakest %}
+      <a class="focus-pill bucket-{{ w.bucket }}" href="/drill?domain={{ w.key }}">
+        <b>{{ w.label }}</b>
+        <span>{{ w.pct_str }} · {{ w.correct }}/{{ w.attempts }} · drill →</span>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Per-domain accuracy</h2>
+  <table class="stats">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Bank</th>
+        <th>Target weight</th>
+        <th>Attempts</th>
+        <th>Correct</th>
+        <th>Accuracy</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in domains %}
+        <tr>
+          <td><a href="/drill?domain={{ d.key }}">{{ d.label }}</a></td>
+          <td class="muted">{{ d.bank_size }} q</td>
+          <td class="muted">{{ d.target_weight }}%</td>
+          <td>{{ d.attempts }}</td>
+          <td>{{ d.correct }}</td>
+          <td>{{ d.pct_str }}</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill bucket-{{ d.bucket }}" style="width: {{ d.pct }}%"></div>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if principles %}
+<div class="card">
+  <h2>Weakest principles (top 10)</h2>
+  <p class="muted">Sorted by accuracy ascending. Only principles you've attempted appear.</p>
+  <table class="stats">
+    <thead>
+      <tr>
+        <th>Principle</th>
+        <th>Domain</th>
+        <th>Attempts</th>
+        <th>Accuracy</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in principles %}
+        <tr>
+          <td><code>{{ p.principle }}</code></td>
+          <td class="muted">{{ p.domain }}</td>
+          <td>{{ p.correct }}/{{ p.attempts }}</td>
+          <td>{{ p.pct_str }}</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill bucket-{{ p.bucket }}" style="width: {{ p.pct }}%"></div>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if anti_patterns %}
+<div class="card">
+  <h2>Most-missed anti-patterns</h2>
+  <p class="muted">Slug-tagged questions only, sorted by accuracy ascending.</p>
+  <table class="stats">
+    <thead>
+      <tr>
+        <th>Anti-pattern</th>
+        <th>Slug</th>
+        <th>Attempts</th>
+        <th>Accuracy</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ap in anti_patterns %}
+        <tr>
+          <td>{{ ap.label }}</td>
+          <td class="muted"><code>{{ ap.slug }}</code></td>
+          <td>{{ ap.correct }}/{{ ap.attempts }}</td>
+          <td>{{ ap.pct_str }}</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill bucket-{{ ap.bucket }}" style="width: {{ ap.pct }}%"></div>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Question bank sources</h2>
+  <ul class="muted">
+    {% for s in sources %}
+      <li><code>{{ s.name }}</code> — {{ s.count }} questions</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% endblock %}

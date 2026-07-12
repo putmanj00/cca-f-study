@@ -40,8 +40,9 @@ force-fit.
 
 ### Allowed `domain` values
 
-`agentic`, `claude_code`, `prompt_eng`, `tool_mcp`, `context`, `cli_reference`
-(`cli_reference` is a local-only study domain with zero exam weight.)
+`agentic`, `claude_code`, `prompt_eng`, `tool_mcp`, `context`, `off_blueprint`
+(`off_blueprint` is a local-only study domain with zero exam weight for topics the
+Exam Guide lists as out of scope.)
 
 ### Allowed `scenario` values
 

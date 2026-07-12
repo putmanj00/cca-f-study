@@ -19,15 +19,18 @@ from random import Random
 from typing import Optional
 
 # Domain weights for the blueprint-aligned weighted sampler, matching the
-# published CCA-F exam blueprint (D1-D5). ``cli_reference`` is a local-only
-# study domain with no exam weight, so it is excluded from weighted sampling.
+# published CCA-F Exam Guide v0.2 (2026-06-30; see
+# docs/exam-guide-v0.2-alignment.md). ``off_blueprint`` holds questions on
+# topics the guide lists as out of scope (caching internals, streaming,
+# pricing, token counting, ...) — still drillable by domain filter but
+# excluded from weighted sampling.
 DOMAIN_WEIGHT: dict[str, int] = {
-    "agentic": 25,      # D1 Agentic Architecture & Orchestration
-    "tool_mcp": 20,     # D2 Tool Design & MCP Integration
+    "agentic": 27,      # D1 Agentic Architecture & Orchestration
+    "tool_mcp": 18,     # D2 Tool Design & MCP Integration
     "claude_code": 20,  # D3 Claude Code Configuration & Workflows
     "prompt_eng": 20,   # D4 Prompt Engineering & Structured Output
     "context": 15,      # D5 Context Management & Reliability
-    "cli_reference": 0,
+    "off_blueprint": 0,
 }
 
 
@@ -133,7 +136,7 @@ def pick_weighted_domain(
     """Pick a domain weighted by exam blueprint.
 
     Restricted to ``available`` domains with a positive weight, so a domain with
-    no questions (or a zero-weight study domain like ``cli_reference``) is never
+    no questions (or the zero-weight ``off_blueprint`` study domain) is never
     chosen. Returns ``None`` if no domain qualifies.
     """
     pool = [(d, weights.get(d, 0)) for d in available if weights.get(d, 0) > 0]

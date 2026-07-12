@@ -14,7 +14,7 @@ import app
 import db
 
 ROOT = Path(__file__).resolve().parent.parent
-BANK = ROOT / "seed_data_v10_original_2026_06.json"
+BANK = ROOT / "seed_data_v11_exam_guide_v0_2.json"
 
 
 def _load_assemble():
@@ -143,7 +143,7 @@ def test_assemble_build_row_preserves_doc_links() -> None:
 
 def test_bank_every_question_has_doc_links() -> None:
     rows = json.loads(BANK.read_text())
-    assert len(rows) == 99
+    assert len(rows) == 142
     for r in rows:
         urls = [u for u in (r.get("doc_links") or "").splitlines() if u.strip()]
         assert urls, f"no doc_links: {r['stem'][:50]}"
@@ -156,4 +156,4 @@ def test_bank_every_question_has_doc_links() -> None:
 def test_bank_letter_balance_unchanged() -> None:
     rows = json.loads(BANK.read_text())
     dist = Counter(r["correct"] for r in rows)
-    assert dict(sorted(dist.items())) == {"A": 26, "B": 25, "C": 24, "D": 24}
+    assert dict(sorted(dist.items())) == {"A": 37, "B": 36, "C": 35, "D": 34}

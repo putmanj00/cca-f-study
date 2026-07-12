@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).parent
 
 DOMAINS = (
     "agentic", "claude_code", "prompt_eng", "tool_mcp", "context",
-    "cli_reference",
+    "off_blueprint",
 )
 SCENARIOS = (
     "customer_support", "code_generation", "multi_agent_research",
@@ -432,7 +432,7 @@ DOMAIN_LABEL = {
     "claude_code": "Claude Code Configuration & Workflows",
     "prompt_eng": "Prompt Engineering & Structured Output",
     "context": "Context Management & Reliability",
-    "cli_reference": "Claude Code CLI Reference (v2.1.153)",
+    "off_blueprint": "Off-Blueprint (API deep dives, zero exam weight)",
 }
 
 

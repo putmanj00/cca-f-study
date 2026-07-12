@@ -64,16 +64,21 @@ Add your own by hand following [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Exam blueprint (public)
 
-Scenario-based MCQ, ~60 questions, pass **720 / 1000**. Domain weights, used by the
+Scenario-based MCQ, 60 questions / 120 minutes, pass **720 / 1000**. Weights from
+Exam Guide v0.2 (2026-06-30; see
+[docs/exam-guide-v0.2-alignment.md](docs/exam-guide-v0.2-alignment.md)), used by the
 weighted-drill mode and the stats page:
 
 | ID | Domain | Weight |
 |----|--------|-------:|
-| D1 | Agentic Architecture & Orchestration | 25% |
-| D2 | Tool Design & MCP Integration | 20% |
+| D1 | Agentic Architecture & Orchestration | 27% |
+| D2 | Tool Design & MCP Integration | 18% |
 | D3 | Claude Code Configuration & Workflows | 20% |
 | D4 | Prompt Engineering & Structured Output | 20% |
 | D5 | Context Management & Reliability | 15% |
+
+Questions on topics the guide lists as out of scope live in the zero-weight
+`off_blueprint` domain — drillable via the domain filter, never weighted-sampled.
 
 ## Routes
 

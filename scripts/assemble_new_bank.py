@@ -26,7 +26,7 @@ SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/cca_gen/verified")
 OUT = Path(__file__).resolve().parent.parent / "seed_data_v10_original_2026_06.json"
 SEED = 20260622
 
-DOMAINS = {"agentic", "claude_code", "prompt_eng", "tool_mcp", "context", "cli_reference"}
+DOMAINS = {"agentic", "claude_code", "prompt_eng", "tool_mcp", "context", "off_blueprint"}
 SCENARIOS = {
     "customer_support", "code_generation", "multi_agent_research",
     "dev_productivity", "cicd", "data_extraction", "cli_lookup",

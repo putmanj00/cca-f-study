@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS question (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   domain          TEXT NOT NULL CHECK(domain IN (
                     'agentic','claude_code','prompt_eng','tool_mcp','context',
-                    'cli_reference'
+                    'off_blueprint'
                   )),
   scenario        TEXT NOT NULL CHECK(scenario IN (
                     'customer_support','code_generation','multi_agent_research',

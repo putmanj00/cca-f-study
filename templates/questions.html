@@ -29,6 +29,7 @@
         <div class="question-title">#{{ q.id }} · {{ q.domain }} · {{ q.scenario }}</div>
         <div class="question-stem">{{ q.stem }}</div>
         {% if q.principle %}<code>{{ q.principle }}</code>{% endif %}
+        {% if q.guide_section %}<div class="tag guide">{{ q.guide_section }}</div>{% endif %}
       </div>
       <div class="question-status">
         {% if not q.answered %}

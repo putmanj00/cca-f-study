@@ -16,6 +16,7 @@ select, input[type=text], textarea { font: inherit; padding: 6px 8px; border: 1p
 .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .tag { background: #eef; color: #224; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; }
 .tag.muted { background: #eee; color: var(--muted); }
+.tag.guide { background: #e7f4e7; color: #1d4d1d; }
 .stem { font-size: 1.05rem; background: white; padding: 12px; border: 1px solid var(--line); border-radius: 6px; }
 .choice { display: flex; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: white; margin: 8px 0; cursor: pointer; }
 .choice:hover { border-color: var(--accent); }

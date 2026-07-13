@@ -4,6 +4,7 @@
   <span class="tag">{{ q.domain }}</span>
   <span class="tag">{{ q.scenario }}</span>
   {% if q.principle %}<span class="tag muted">{{ q.principle }}</span>{% endif %}
+  {% if q.guide_section %}<span class="tag guide">{{ q.guide_section }}</span>{% endif %}
   <span class="tag muted">mode: {{ mode }}{% if weighted == '1' %} (weighted){% elif only == 'unanswered' %} (unanswered){% endif %}</span>
   {% if only == 'unanswered' and remaining is not none %}
     <span class="tag">{{ remaining }} unanswered remaining</span>

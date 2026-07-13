@@ -304,7 +304,7 @@ def questions(
     with connect() as conn:
         rows = conn.execute(
             f"""
-            SELECT q.id, q.domain, q.scenario, q.principle, q.stem,
+            SELECT q.id, q.domain, q.scenario, q.principle, q.stem, q.guide_section,
                    COUNT(a.id) AS attempts,
                    COALESCE(SUM(a.correct), 0) AS correct_attempts,
                    (

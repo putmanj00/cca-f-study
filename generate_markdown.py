@@ -21,6 +21,8 @@ def generate_markdown():
                 
                 output.append(f"## Question {question_num}")
                 output.append(f"**Domain:** {row.get('domain', 'N/A')} | **Scenario:** {row.get('scenario', 'N/A')}\n")
+                if row.get("guide_section"):
+                    output.append(f"**Exam guide section:** {row.get('guide_section')}\n")
                 output.append(f"{stem}\n")
                 
                 output.append(f"- **A**: {row.get('choice_a', '')}")

@@ -48,6 +48,8 @@ Exam Guide lists as out of scope.)
 
 `customer_support`, `code_generation`, `multi_agent_research`, `dev_productivity`,
 `cicd`, `data_extraction`, `cli_lookup`
+(`cli_lookup` was retired in Exam Guide v0.2 and is kept only so legacy rows
+validate — don't use it for new questions.)
 
 ## The "near-miss" format
 

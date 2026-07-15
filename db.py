@@ -50,6 +50,26 @@ CREATE TABLE IF NOT EXISTS attempt (
   attempted_at    TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS exam (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  started_at      TEXT DEFAULT CURRENT_TIMESTAMP,
+  duration_sec    INTEGER NOT NULL,
+  question_ids    TEXT NOT NULL,
+  finished_at     TEXT
+);
+
+CREATE TABLE IF NOT EXISTS exam_answer (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  exam_id         INTEGER NOT NULL REFERENCES exam(id),
+  question_id     INTEGER NOT NULL REFERENCES question(id),
+  selected        TEXT NOT NULL CHECK(selected IN ('A','B','C','D')),
+  correct         INTEGER NOT NULL,
+  answered_at     TEXT DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(exam_id, question_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_answer_exam ON exam_answer(exam_id);
+
 CREATE INDEX IF NOT EXISTS idx_question_domain ON question(domain);
 CREATE INDEX IF NOT EXISTS idx_question_anti_pattern_slug ON question(anti_pattern_slug);
 CREATE INDEX IF NOT EXISTS idx_attempt_question ON attempt(question_id);

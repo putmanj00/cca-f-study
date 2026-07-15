@@ -90,26 +90,38 @@ def anti_pattern_stats(conn: sqlite3.Connection) -> list[dict]:
     return out
 
 
-def _domain_clause(domain: Optional[str], params: list) -> str:
+def _domain_clause(
+    domain: Optional[str], params: list, exclude_domain: Optional[str] = None
+) -> str:
+    clause = ""
     if domain:
         params.append(domain)
-        return " AND q.domain = ?"
-    return ""
+        clause += " AND q.domain = ?"
+    if exclude_domain and exclude_domain != domain:
+        params.append(exclude_domain)
+        clause += " AND q.domain != ?"
+    return clause
 
 
-def unanswered_count(conn: sqlite3.Connection, domain: Optional[str] = None) -> int:
+def unanswered_count(
+    conn: sqlite3.Connection,
+    domain: Optional[str] = None,
+    exclude_domain: Optional[str] = None,
+) -> int:
     """Count questions with no recorded attempt, optionally within one domain."""
     params: list = []
     sql = (
         "SELECT COUNT(*) FROM question q "
         "WHERE NOT EXISTS (SELECT 1 FROM attempt a WHERE a.question_id = q.id)"
-        + _domain_clause(domain, params)
+        + _domain_clause(domain, params, exclude_domain)
     )
     return int(conn.execute(sql, params).fetchone()[0])
 
 
 def next_unanswered(
-    conn: sqlite3.Connection, domain: Optional[str] = None
+    conn: sqlite3.Connection,
+    domain: Optional[str] = None,
+    exclude_domain: Optional[str] = None,
 ) -> Optional[sqlite3.Row]:
     """Return the next unanswered question in fixed ``(domain, id)`` order.
 
@@ -122,7 +134,7 @@ def next_unanswered(
     sql = (
         "SELECT q.* FROM question q "
         "WHERE NOT EXISTS (SELECT 1 FROM attempt a WHERE a.question_id = q.id)"
-        + _domain_clause(domain, params)
+        + _domain_clause(domain, params, exclude_domain)
         + " ORDER BY q.domain, q.id LIMIT 1"
     )
     return conn.execute(sql, params).fetchone()
@@ -144,6 +156,61 @@ def pick_weighted_domain(
         return None
     domains, w = zip(*pool)
     return rng.choices(domains, weights=w, k=1)[0]
+
+
+def exam_allocation(
+    available: Mapping[str, int],
+    total: int = 60,
+    weights: Mapping[str, int] = DOMAIN_WEIGHT,
+) -> dict[str, int]:
+    """Allocate ``total`` exam slots across positively-weighted domains.
+
+    Largest-remainder allocation over the blueprint weights, capped by each
+    domain's available bank size. Zero-weight domains (``off_blueprint``) never
+    receive a slot. May return fewer than ``total`` slots when the bank is too
+    small to fill the allocation.
+    """
+    pool = {
+        d: w for d, w in weights.items() if w > 0 and available.get(d, 0) > 0
+    }
+    if not pool:
+        return {}
+    weight_sum = sum(pool.values())
+    exact = {d: total * w / weight_sum for d, w in pool.items()}
+    alloc = {d: min(int(exact[d]), available[d]) for d in pool}
+    capacity = sum(min(available[d], total) for d in pool)
+    while sum(alloc.values()) < min(total, capacity):
+        candidates = [d for d in pool if alloc[d] < available[d]]
+        if not candidates:
+            break
+        best = max(candidates, key=lambda d: (exact[d] - alloc[d], weights[d]))
+        alloc[best] += 1
+    return alloc
+
+
+def sample_exam_questions(
+    conn: sqlite3.Connection, rng: Random, total: int = 60
+) -> list[int]:
+    """Sample question ids for a simulated exam: blueprint-weighted by domain,
+    without replacement, off_blueprint excluded, shuffled into exam order.
+    """
+    available = {
+        r[0]: r[1]
+        for r in conn.execute(
+            "SELECT domain, COUNT(*) FROM question GROUP BY domain"
+        ).fetchall()
+    }
+    ids: list[int] = []
+    for domain, n in exam_allocation(available, total).items():
+        domain_ids = [
+            r[0]
+            for r in conn.execute(
+                "SELECT id FROM question WHERE domain = ?", (domain,)
+            ).fetchall()
+        ]
+        ids.extend(rng.sample(domain_ids, n))
+    rng.shuffle(ids)
+    return ids
 
 
 def next_weighted(conn: sqlite3.Connection, rng: Random) -> Optional[sqlite3.Row]:

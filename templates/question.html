@@ -20,6 +20,7 @@
   <input type="hidden" name="domain" value="{{ domain or '' }}">
   <input type="hidden" name="only" value="{{ only or '' }}">
   <input type="hidden" name="weighted" value="{{ weighted or '' }}">
+  <input type="hidden" name="noappendix" value="{{ noappendix or '' }}">
   <input type="hidden" name="mode" value="{{ mode }}">
   {% for display_letter, original_letter, text in q.display_choices %}
     <label class="choice">

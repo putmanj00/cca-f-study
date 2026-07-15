@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Exam #{{ exam.id }} Result — CCA-F Study{% endblock %}
+{% block content %}
+<h1>
+  Exam #{{ exam.id }}:
+  {% if passed %}<span class="ok">Pass</span>{% else %}<span class="bad">Fail</span>{% endif %}
+</h1>
+
+<div class="card progress-card">
+  <div>
+    <div class="metric">{{ correct }}/{{ total }}</div>
+    <div class="muted">correct ({{ pct_str }})</div>
+  </div>
+  <div>
+    <div class="metric">{{ answered }}/{{ total }}</div>
+    <div class="muted">answered before time/finish</div>
+  </div>
+  <div>
+    <div class="metric">{{ pass_threshold }}%</div>
+    <div class="muted">passing bar (scaled 720/1000)</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>By Domain</h2>
+  <table class="exam-history">
+    <tr><th>Domain</th><th>Correct</th><th>Accuracy</th></tr>
+    {% for d in domains %}
+      <tr>
+        <td>{{ d.label }}</td>
+        <td>{{ d.correct }}/{{ d.total }}</td>
+        <td><span class="badge {{ 'ok' if d.bucket == 'ok' else ('sel' if d.bucket == 'warn' else 'bad') }}">{{ d.pct_str }}</span></td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if missed %}
+<div class="card">
+  <h2>Missed Questions ({{ missed|length }})</h2>
+  <ul class="missed-list">
+    {% for m in missed %}
+      <li>
+        <a href="/question/{{ m.id }}">#{{ m.id }}</a>
+        <span class="tag">{{ m.domain }}</span>
+        {% if m.unanswered %}<span class="badge bad">unanswered</span>{% endif %}
+        {{ m.stem[:140] }}{% if m.stem|length > 140 %}&hellip;{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="actions">
+  <a class="button" href="/exam">Exam Home</a>
+  <a class="button secondary" href="/review">Review Wrong</a>
+  <a class="button secondary" href="/">Home</a>
+</div>
+{% endblock %}

@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}CCA-F Study{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script>
+    // Apply saved theme before first paint to avoid a light-mode flash.
+    (function () {
+      var t = localStorage.getItem('theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 <body>
@@ -12,14 +20,23 @@
     <a href="/" class="brand">CCA-F Study</a>
     <nav>
       <a href="/drill">Drill</a>
+      <a href="/exam">Exam</a>
       <a href="/questions">Questions</a>
       <a href="/review">Review Wrong</a>
       <a href="/add">Add</a>
       <a href="/stats">Stats</a>
+      <button type="button" id="theme-toggle" title="Toggle dark mode">&#9789;</button>
     </nav>
   </header>
   <main id="main">
     {% block content %}{% endblock %}
   </main>
+  <script>
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+      var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem('theme', next);
+    });
+  </script>
 </body>
 </html>

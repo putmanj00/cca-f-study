@@ -31,13 +31,24 @@
     <input type="checkbox" name="only" value="unanswered">
     <span class="choice-text">Only unanswered questions</span>
   </label>
+  <label class="choice">
+    <input type="checkbox" name="noappendix" value="1" checked>
+    <span class="choice-text">Exclude appendix (off-blueprint) questions</span>
+  </label>
   <button type="submit">Start Drill</button>
 </form>
 
 <div class="card">
+  <h2>Exam Simulation</h2>
+  <p>60 random questions, 120-minute timer, blueprint domain mix, no feedback
+     until the score report &mdash; like the real thing.</p>
+  <a class="button" href="/exam">Exam Simulation</a>
+</div>
+
+<div class="card">
   <h2>Weighted Exam Mix</h2>
   <p>Draw questions weighted to the published blueprint
-     (D1 25% · D2 20% · D3 20% · D4 20% · D5 15%).</p>
+     (D1 27% · D2 18% · D3 20% · D4 20% · D5 15%).</p>
   <a class="button" href="/drill?weighted=1">Start Weighted Drill</a>
 </div>
 

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import random
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -19,6 +20,7 @@ from selection import (
     anti_pattern_stats,
     next_unanswered,
     next_weighted,
+    sample_exam_questions,
     unanswered_count,
 )
 
@@ -148,12 +150,19 @@ def drill(
     domain: Optional[str] = None,
     only: Optional[str] = None,
     weighted: Optional[str] = None,
+    noappendix: Optional[str] = None,
 ) -> HTMLResponse:
     if domain and domain not in DOMAINS:
         domain = None
     if only != "unanswered":
         only = None
     is_weighted = weighted in {"1", "true", "yes"}
+    # Explicitly drilling the appendix domain overrides the exclusion toggle.
+    exclude = (
+        "off_blueprint"
+        if noappendix in {"1", "true", "yes"} and domain != "off_blueprint"
+        else None
+    )
     remaining: Optional[int] = None
     with connect() as conn:
         if is_weighted:
@@ -161,18 +170,27 @@ def drill(
             domain = None
             row = next_weighted(conn, random.SystemRandom())
         elif only == "unanswered":
-            row = next_unanswered(conn, domain)
-            remaining = unanswered_count(conn, domain)
+            row = next_unanswered(conn, domain, exclude)
+            remaining = unanswered_count(conn, domain, exclude)
         else:
+            conds = []
+            params: list = []
+            if domain:
+                conds.append("q.domain = ?")
+                params.append(domain)
+            if exclude:
+                conds.append("q.domain != ?")
+                params.append(exclude)
+            where = ("WHERE " + " AND ".join(conds)) if conds else ""
             row = conn.execute(
-                """
+                f"""
                 SELECT q.* FROM question q
                 {where}
                 ORDER BY (SELECT COUNT(*) FROM attempt WHERE question_id = q.id),
                          RANDOM()
                 LIMIT 1
-                """.format(where="WHERE q.domain = ?" if domain else ""),
-                (domain,) if domain else (),
+                """,
+                params,
             ).fetchone()
     if not row:
         if only == "unanswered":
@@ -193,6 +211,7 @@ def drill(
             "domain": domain,
             "only": only,
             "weighted": "1" if is_weighted else "",
+            "noappendix": "1" if exclude else "",
             "remaining": remaining,
             "mode": "drill",
         },
@@ -206,6 +225,7 @@ class AnswerPayload(BaseModel):
     domain: Optional[str] = None
     only: Optional[str] = None
     weighted: Optional[str] = None
+    noappendix: Optional[str] = None
     mode: str = Field(default="drill")
 
 
@@ -218,12 +238,14 @@ def answer(
     domain: Optional[str] = Form(None),
     only: Optional[str] = Form(None),
     weighted: Optional[str] = Form(None),
+    noappendix: Optional[str] = Form(None),
     mode: str = Form("drill"),
 ) -> HTMLResponse:
     payload = AnswerPayload(
         question_id=question_id, selected=selected, choice_order=choice_order,
         domain=domain, only=only if only == "unanswered" else None,
-        weighted=weighted if weighted == "1" else None, mode=mode,
+        weighted=weighted if weighted == "1" else None,
+        noappendix=noappendix if noappendix == "1" else None, mode=mode,
     )
     with connect() as conn:
         row = conn.execute(
@@ -250,6 +272,7 @@ def answer(
             "domain": payload.domain,
             "only": payload.only,
             "weighted": payload.weighted or "",
+            "noappendix": payload.noappendix or "",
             "mode": payload.mode,
         },
     )
@@ -284,6 +307,272 @@ def review(request: Request) -> HTMLResponse:
             "q": _apply_choice_order(_row_to_question(row)),
             "domain": None,
             "mode": "review",
+        },
+    )
+
+
+EXAM_QUESTIONS = 60      # real CCA-F: 60 questions
+EXAM_DURATION_SEC = 120 * 60  # real CCA-F: 120 minutes
+
+
+def _exam_get(conn: sqlite3.Connection, exam_id: int) -> Optional[sqlite3.Row]:
+    return conn.execute("SELECT * FROM exam WHERE id = ?", (exam_id,)).fetchone()
+
+
+def _exam_remaining_sec(conn: sqlite3.Connection, exam: sqlite3.Row) -> int:
+    elapsed = conn.execute(
+        "SELECT CAST(strftime('%s','now') AS INTEGER)"
+        " - CAST(strftime('%s', ?) AS INTEGER)",
+        (exam["started_at"],),
+    ).fetchone()[0]
+    return int(exam["duration_sec"]) - int(elapsed)
+
+
+def _exam_finish(conn: sqlite3.Connection, exam_id: int) -> None:
+    conn.execute(
+        "UPDATE exam SET finished_at = CURRENT_TIMESTAMP"
+        " WHERE id = ? AND finished_at IS NULL",
+        (exam_id,),
+    )
+    conn.commit()
+
+
+def _exam_answered_ids(conn: sqlite3.Connection, exam_id: int) -> set[int]:
+    return {
+        r[0]
+        for r in conn.execute(
+            "SELECT question_id FROM exam_answer WHERE exam_id = ?", (exam_id,)
+        ).fetchall()
+    }
+
+
+@app.get("/exam", response_class=HTMLResponse)
+def exam_home(request: Request) -> HTMLResponse:
+    with connect() as conn:
+        active = conn.execute(
+            "SELECT * FROM exam WHERE finished_at IS NULL ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        if active and _exam_remaining_sec(conn, active) <= 0:
+            _exam_finish(conn, active["id"])
+            active = None
+        past = conn.execute(
+            """
+            SELECT e.id, e.started_at, e.finished_at, e.question_ids,
+                   COUNT(a.id) AS answered,
+                   COALESCE(SUM(a.correct), 0) AS correct
+            FROM exam e
+            LEFT JOIN exam_answer a ON a.exam_id = e.id
+            WHERE e.finished_at IS NOT NULL
+            GROUP BY e.id
+            ORDER BY e.id DESC
+            LIMIT 10
+            """
+        ).fetchall()
+        bank = conn.execute(
+            "SELECT COUNT(*) FROM question WHERE domain != 'off_blueprint'"
+        ).fetchone()[0]
+    past_exams = []
+    for r in past:
+        total = len(json.loads(r["question_ids"]))
+        pct = (r["correct"] / total * 100) if total else 0.0
+        past_exams.append({
+            "id": r["id"],
+            "started_at": r["started_at"],
+            "correct": r["correct"],
+            "total": total,
+            "pct_str": f"{pct:.0f}%",
+            "passed": pct >= PASS_THRESHOLD,
+        })
+    return templates.TemplateResponse(
+        request, "exam.html",
+        {
+            "active": active,
+            "past_exams": past_exams,
+            "bank_size": bank,
+            "exam_questions": EXAM_QUESTIONS,
+            "exam_minutes": EXAM_DURATION_SEC // 60,
+            "pass_threshold": PASS_THRESHOLD,
+            "domain_weight": DOMAIN_WEIGHT,
+            "domain_label": DOMAIN_LABEL,
+        },
+    )
+
+
+@app.post("/exam/start")
+def exam_start() -> RedirectResponse:
+    with connect() as conn:
+        # One active exam at a time: finish any stale one first.
+        for row in conn.execute(
+            "SELECT id FROM exam WHERE finished_at IS NULL"
+        ).fetchall():
+            _exam_finish(conn, row[0])
+        ids = sample_exam_questions(conn, random.SystemRandom(), EXAM_QUESTIONS)
+        if not ids:
+            return RedirectResponse(url="/exam", status_code=303)
+        cur = conn.execute(
+            "INSERT INTO exam (duration_sec, question_ids) VALUES (?, ?)",
+            (EXAM_DURATION_SEC, json.dumps(ids)),
+        )
+        conn.commit()
+        exam_id = cur.lastrowid
+    return RedirectResponse(url=f"/exam/{exam_id}", status_code=303)
+
+
+@app.get("/exam/{exam_id}", response_class=HTMLResponse)
+def exam_question(request: Request, exam_id: int) -> Response:
+    with connect() as conn:
+        exam = _exam_get(conn, exam_id)
+        if not exam:
+            return HTMLResponse("Exam not found", status_code=404)
+        if exam["finished_at"]:
+            return RedirectResponse(url=f"/exam/{exam_id}/result", status_code=303)
+        remaining = _exam_remaining_sec(conn, exam)
+        if remaining <= 0:
+            _exam_finish(conn, exam_id)
+            return RedirectResponse(url=f"/exam/{exam_id}/result", status_code=303)
+        order = json.loads(exam["question_ids"])
+        answered = _exam_answered_ids(conn, exam_id)
+        pending = [qid for qid in order if qid not in answered]
+        if not pending:
+            _exam_finish(conn, exam_id)
+            return RedirectResponse(url=f"/exam/{exam_id}/result", status_code=303)
+        row = conn.execute(
+            "SELECT * FROM question WHERE id = ?", (pending[0],)
+        ).fetchone()
+    return templates.TemplateResponse(
+        request, "exam_question.html",
+        {
+            "q": _apply_choice_order(_row_to_question(row)),
+            "exam_id": exam_id,
+            "position": len(answered) + 1,
+            "total": len(order),
+            "remaining_sec": remaining,
+        },
+    )
+
+
+@app.post("/exam/{exam_id}/answer")
+def exam_answer(
+    exam_id: int,
+    question_id: int = Form(...),
+    selected: str = Form(...),
+    choice_order: str = Form("ABCD"),
+) -> RedirectResponse:
+    with connect() as conn:
+        exam = _exam_get(conn, exam_id)
+        if not exam:
+            return RedirectResponse(url="/exam", status_code=303)
+        if exam["finished_at"]:
+            return RedirectResponse(url=f"/exam/{exam_id}/result", status_code=303)
+        if _exam_remaining_sec(conn, exam) <= 0:
+            # Time expired while the question was on screen: discard the answer.
+            _exam_finish(conn, exam_id)
+            return RedirectResponse(url=f"/exam/{exam_id}/result", status_code=303)
+        order = json.loads(exam["question_ids"])
+        row = conn.execute(
+            "SELECT * FROM question WHERE id = ?", (question_id,)
+        ).fetchone()
+        if not row or question_id not in order:
+            return RedirectResponse(url=f"/exam/{exam_id}", status_code=303)
+        try:
+            original_selected = _selected_original(selected, choice_order)
+        except ValueError:
+            return RedirectResponse(url=f"/exam/{exam_id}", status_code=303)
+        is_correct = 1 if row["correct"] == original_selected else 0
+        inserted = conn.execute(
+            "INSERT OR IGNORE INTO exam_answer"
+            " (exam_id, question_id, selected, correct) VALUES (?, ?, ?, ?)",
+            (exam_id, question_id, original_selected, is_correct),
+        ).rowcount
+        if inserted:
+            # Mirror into attempt history so Review Wrong and Stats see it.
+            conn.execute(
+                "INSERT INTO attempt (question_id, selected, correct) VALUES (?, ?, ?)",
+                (question_id, original_selected, is_correct),
+            )
+        conn.commit()
+        answered = _exam_answered_ids(conn, exam_id)
+        if all(qid in answered for qid in order):
+            _exam_finish(conn, exam_id)
+            return RedirectResponse(url=f"/exam/{exam_id}/result", status_code=303)
+    return RedirectResponse(url=f"/exam/{exam_id}", status_code=303)
+
+
+@app.post("/exam/{exam_id}/finish")
+def exam_finish(exam_id: int) -> RedirectResponse:
+    with connect() as conn:
+        if _exam_get(conn, exam_id):
+            _exam_finish(conn, exam_id)
+    return RedirectResponse(url=f"/exam/{exam_id}/result", status_code=303)
+
+
+@app.get("/exam/{exam_id}/result", response_class=HTMLResponse)
+def exam_result(request: Request, exam_id: int) -> Response:
+    with connect() as conn:
+        exam = _exam_get(conn, exam_id)
+        if not exam:
+            return HTMLResponse("Exam not found", status_code=404)
+        if not exam["finished_at"]:
+            return RedirectResponse(url=f"/exam/{exam_id}", status_code=303)
+        order = json.loads(exam["question_ids"])
+        answers = {
+            r["question_id"]: r
+            for r in conn.execute(
+                "SELECT * FROM exam_answer WHERE exam_id = ?", (exam_id,)
+            ).fetchall()
+        }
+        qrows = {
+            r["id"]: r
+            for r in conn.execute(
+                "SELECT id, domain, principle, guide_section, stem FROM question"
+                f" WHERE id IN ({','.join('?' * len(order))})",
+                order,
+            ).fetchall()
+        }
+    total = len(order)
+    correct = sum(1 for a in answers.values() if a["correct"])
+    pct = _pct(correct, total)
+    by_domain: dict[str, dict] = {}
+    missed = []
+    for qid in order:
+        q = qrows.get(qid)
+        if not q:
+            continue
+        d = by_domain.setdefault(
+            q["domain"],
+            {"key": q["domain"], "label": DOMAIN_LABEL.get(q["domain"], q["domain"]),
+             "total": 0, "correct": 0},
+        )
+        d["total"] += 1
+        a = answers.get(qid)
+        if a and a["correct"]:
+            d["correct"] += 1
+        else:
+            missed.append({
+                "id": qid,
+                "stem": q["stem"],
+                "domain": q["domain"],
+                "unanswered": a is None,
+            })
+    domains = []
+    for d in sorted(by_domain.values(), key=lambda x: x["key"]):
+        dpct = _pct(d["correct"], d["total"])
+        d["pct_str"] = f"{dpct:.0f}%"
+        d["bucket"] = _bucket(dpct, d["total"])
+        domains.append(d)
+    return templates.TemplateResponse(
+        request, "exam_result.html",
+        {
+            "exam": exam,
+            "total": total,
+            "answered": len(answers),
+            "correct": correct,
+            "pct": pct,
+            "pct_str": f"{pct:.0f}%",
+            "passed": pct >= PASS_THRESHOLD,
+            "pass_threshold": PASS_THRESHOLD,
+            "domains": domains,
+            "missed": missed,
         },
     )
 

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Exam Simulation — CCA-F Study{% endblock %}
+{% block content %}
+<h1>Exam Simulation</h1>
+<p class="muted">Timed simulation of the real CCA-F format: {{ exam_questions }} questions,
+{{ exam_minutes }} minutes, one pass, no feedback until the end.</p>
+
+<div class="card">
+  <h2>Format</h2>
+  <ul>
+    <li>{{ exam_questions }} multiple-choice questions drawn randomly from the practice bank of {{ bank_size }} in-scope questions</li>
+    <li>Domain mix matches the published blueprint:
+      {% for key, w in domain_weight.items() if w > 0 %}{{ domain_label[key] }} {{ w }}%{% if not loop.last %} · {% endif %}{% endfor %}
+    </li>
+    <li>Appendix (off-blueprint) questions are excluded</li>
+    <li>{{ exam_minutes }}-minute countdown; the exam auto-submits when time runs out</li>
+    <li>No rationales or reference links shown until the score report</li>
+    <li>Score report benchmarks against the {{ pass_threshold }}% passing bar (scaled 720/1000)</li>
+  </ul>
+  {% if active %}
+    <a class="button" href="/exam/{{ active.id }}">Resume Exam #{{ active.id }}</a>
+    <form action="/exam/{{ active.id }}/finish" method="post" style="display:inline">
+      <button type="submit" class="button secondary">End &amp; Score Now</button>
+    </form>
+  {% else %}
+    <form action="/exam/start" method="post">
+      <button type="submit">Start Exam</button>
+    </form>
+  {% endif %}
+</div>
+
+{% if past_exams %}
+<div class="card">
+  <h2>Past Exams</h2>
+  <table class="exam-history">
+    <tr><th>#</th><th>Started</th><th>Score</th><th>Result</th><th></th></tr>
+    {% for e in past_exams %}
+      <tr>
+        <td>{{ e.id }}</td>
+        <td>{{ e.started_at }}</td>
+        <td>{{ e.correct }}/{{ e.total }} ({{ e.pct_str }})</td>
+        <td>{% if e.passed %}<span class="badge ok">pass</span>{% else %}<span class="badge bad">fail</span>{% endif %}</td>
+        <td><a href="/exam/{{ e.id }}/result">report</a></td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

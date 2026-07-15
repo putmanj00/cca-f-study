@@ -85,9 +85,15 @@ Questions on topics the guide lists as out of scope live in the zero-weight
 | Method | Path        | Purpose                                                          |
 |--------|-------------|------------------------------------------------------------------|
 | GET    | `/`         | Home: pick mode (drill / review-wrong / add) and domain filter   |
-| GET    | `/drill`    | Serve one question. `?domain=` filters; `?only=unanswered` serves the next never-answered question in fixed order with an "N remaining" counter (resumable across restarts); `?weighted=1` samples a domain by exam blueprint weight, then a random question in it |
-| POST   | `/answer`   | Submit `question_id` + `selected`, record the attempt, return the result. Carries `only`/`weighted` so the result's Next link stays in the same mode |
+| GET    | `/drill`    | Serve one question. `?domain=` filters; `?only=unanswered` serves the next never-answered question in fixed order with an "N remaining" counter (resumable across restarts); `?weighted=1` samples a domain by exam blueprint weight, then a random question in it; `?noappendix=1` excludes `off_blueprint` questions (ignored when `domain=off_blueprint` is chosen explicitly) |
+| POST   | `/answer`   | Submit `question_id` + `selected`, record the attempt, return the result. Carries `only`/`weighted`/`noappendix` so the result's Next link stays in the same mode |
 | GET    | `/review`   | Serve a random question from those last answered incorrectly     |
+| GET    | `/exam`     | Exam simulation home: format summary, resume-active, past scores |
+| POST   | `/exam/start` | Sample 60 blueprint-weighted in-scope questions, start the 120-minute clock |
+| GET    | `/exam/{id}` | Serve the next unanswered exam question with countdown timer; auto-finishes when time expires |
+| POST   | `/exam/{id}/answer` | Record an exam answer (no feedback shown); mirrors into attempt history |
+| POST   | `/exam/{id}/finish` | End the exam early and score it                            |
+| GET    | `/exam/{id}/result` | Score report: overall vs 72% bar, per-domain accuracy, missed-question list |
 | GET    | `/questions`| List questions with answered / unanswered / last-wrong status    |
 | GET    | `/question/{id}` | Serve a specific question from the list                     |
 | GET    | `/add`      | Form to add a question                                           |

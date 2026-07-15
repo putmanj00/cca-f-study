@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Exam #{{ exam_id }} — CCA-F Study{% endblock %}
+{% block content %}
+<div class="exam-bar">
+  <span class="tag">Exam #{{ exam_id }}</span>
+  <span class="tag">Question {{ position }} of {{ total }}</span>
+  <span class="timer" id="timer" data-remaining="{{ remaining_sec }}">--:--</span>
+</div>
+
+<p class="stem">{{ q.stem }}</p>
+
+<form action="/exam/{{ exam_id }}/answer" method="post">
+  <input type="hidden" name="question_id" value="{{ q.id }}">
+  <input type="hidden" name="choice_order" value="{{ q.choice_order }}">
+  {% for display_letter, original_letter, text in q.display_choices %}
+    <label class="choice">
+      <input type="radio" name="selected" value="{{ display_letter }}" required>
+      <span class="choice-letter">{{ display_letter }}.</span>
+      <span class="choice-text">{{ text }}</span>
+    </label>
+  {% endfor %}
+  <button type="submit">Submit &amp; Next</button>
+</form>
+
+<form action="/exam/{{ exam_id }}/finish" method="post" class="exam-end"
+      onsubmit="return confirm('End the exam now? Unanswered questions count as wrong.')">
+  <button type="submit" class="button secondary">End Exam Early</button>
+</form>
+
+<script>
+(function () {
+  var el = document.getElementById('timer');
+  var end = Date.now() + parseInt(el.dataset.remaining, 10) * 1000;
+  function tick() {
+    var s = Math.max(0, Math.round((end - Date.now()) / 1000));
+    var m = Math.floor(s / 60), sec = s % 60;
+    el.textContent = String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+    if (s <= 300) el.classList.add('timer-low');
+    if (s <= 0) { window.location.href = '/exam/{{ exam_id }}'; return; }
+    setTimeout(tick, 1000);
+  }
+  tick();
+})();
+</script>
+{% endblock %}

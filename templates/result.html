@@ -51,7 +51,7 @@
     {% if weighted == '1' %}
       <a class="button" href="/drill?weighted=1">Next (Weighted)</a>
     {% else %}
-      <a class="button" href="/drill?domain={{ domain or '' }}&only={{ only or '' }}">{% if only == 'unanswered' %}Next Unanswered{% else %}Next Question{% endif %}</a>
+      <a class="button" href="/drill?domain={{ domain or '' }}&only={{ only or '' }}&noappendix={{ noappendix or '' }}">{% if only == 'unanswered' %}Next Unanswered{% else %}Next Question{% endif %}</a>
     {% endif %}
   {% endif %}
   <a class="button secondary" href="/">Home</a>
